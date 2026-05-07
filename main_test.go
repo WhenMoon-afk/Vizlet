@@ -77,6 +77,15 @@ func TestNaturalLessHandlesZeroPadding(t *testing.T) {
 	}
 }
 
+func TestNaturalLessOrdersDigitsBeforeLetters(t *testing.T) {
+	if !naturalLess("img2.png", "imgA.png") {
+		t.Fatalf("expected digit run to sort before letter at the same position")
+	}
+	if naturalLess("imgA.png", "img2.png") {
+		t.Fatalf("did not expect letter to sort before digit run at the same position")
+	}
+}
+
 func TestNaturalLessIsCaseInsensitive(t *testing.T) {
 	if !naturalLess("Frame2.PNG", "frame10.png") {
 		t.Fatalf("expected case-insensitive natural sort")
