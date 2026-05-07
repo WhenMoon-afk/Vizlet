@@ -1,0 +1,4 @@
+*.exe
+dist/
+vizlet-old.exe
+vizlet-new.exe
