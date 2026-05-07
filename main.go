@@ -927,13 +927,65 @@ func buildDirList(current string) ([]string, int) {
 			files = append(files, filepath.Join(dir, e.Name()))
 		}
 	}
-	sort.Slice(files, func(i, j int) bool { return strings.ToLower(files[i]) < strings.ToLower(files[j]) })
+	sort.Slice(files, func(i, j int) bool { return naturalPathLess(files[i], files[j]) })
 	for i, f := range files {
 		if samePath(f, current) {
 			return files, i
 		}
 	}
 	return files, 0
+}
+
+func naturalPathLess(a, b string) bool {
+	return naturalLess(filepath.Base(a), filepath.Base(b))
+}
+
+func naturalLess(a, b string) bool {
+	ai, bi := 0, 0
+	al, bl := strings.ToLower(a), strings.ToLower(b)
+	for ai < len(al) && bi < len(bl) {
+		ar, br := al[ai], bl[bi]
+		if isASCIIDigit(ar) && isASCIIDigit(br) {
+			anumStart, bnumStart := ai, bi
+			for ai < len(al) && isASCIIDigit(al[ai]) {
+				ai++
+			}
+			for bi < len(bl) && isASCIIDigit(bl[bi]) {
+				bi++
+			}
+			anum := strings.TrimLeft(al[anumStart:ai], "0")
+			bnum := strings.TrimLeft(bl[bnumStart:bi], "0")
+			if anum == "" {
+				anum = "0"
+			}
+			if bnum == "" {
+				bnum = "0"
+			}
+			if len(anum) != len(bnum) {
+				return len(anum) < len(bnum)
+			}
+			if anum != bnum {
+				return anum < bnum
+			}
+			// Same numeric value: shorter digit run sorts first, so image1
+			// comes before image001 while remaining deterministic.
+			alen, blen := ai-anumStart, bi-bnumStart
+			if alen != blen {
+				return alen < blen
+			}
+			continue
+		}
+		if ar != br {
+			return ar < br
+		}
+		ai++
+		bi++
+	}
+	return len(al) < len(bl)
+}
+
+func isASCIIDigit(c byte) bool {
+	return c >= '0' && c <= '9'
 }
 
 func (a *App) navigate(delta int) {
