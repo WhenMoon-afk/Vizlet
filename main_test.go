@@ -1,6 +1,7 @@
 package main
 
 import (
+	"os"
 	"path/filepath"
 	"sort"
 	"testing"
@@ -92,5 +93,43 @@ func TestNaturalLessIsCaseInsensitive(t *testing.T) {
 	}
 	if naturalLess("Image1.png", "image1.png") || naturalLess("image1.png", "Image1.png") {
 		t.Fatalf("case-only differences should compare equivalent")
+	}
+}
+
+func TestBuildDirListUsesNaturalSortAndFindsCurrentIndex(t *testing.T) {
+	dir := t.TempDir()
+	names := []string{
+		"image10.png",
+		"image2.png",
+		"image1.png",
+		"notes.txt",
+	}
+	for _, name := range names {
+		if err := os.WriteFile(filepath.Join(dir, name), nil, 0o644); err != nil {
+			t.Fatalf("write %s: %v", name, err)
+		}
+	}
+	if err := os.Mkdir(filepath.Join(dir, "image3.png"), 0o755); err != nil {
+		t.Fatalf("mkdir image3.png: %v", err)
+	}
+
+	current := filepath.Join(dir, "image2.png")
+	got, index := buildDirList(current)
+
+	want := []string{
+		filepath.Join(dir, "image1.png"),
+		filepath.Join(dir, "image2.png"),
+		filepath.Join(dir, "image10.png"),
+	}
+	if len(got) != len(want) {
+		t.Fatalf("got %d files, want %d: %#v", len(got), len(want), got)
+	}
+	for i := range want {
+		if got[i] != want[i] {
+			t.Fatalf("files[%d] = %q, want %q; full order: %#v", i, got[i], want[i], got)
+		}
+	}
+	if index != 1 {
+		t.Fatalf("index = %d, want 1", index)
 	}
 }
