@@ -20,7 +20,7 @@ Then right-click any GIF → Open With → Choose another app → find Vizlet �
 
 | Key | Action |
 |---|---|
-| Left / Right | Previous / next file in folder |
+| Left / Right | Previous / next file in folder using natural filename order |
 | Space | Pause / resume |
 | , / . | Step prev / next frame |
 | [ / ] | Half / double playback speed |
