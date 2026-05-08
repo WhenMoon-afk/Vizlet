@@ -943,6 +943,7 @@ func naturalPathLess(a, b string) bool {
 func naturalLess(a, b string) bool {
 	ai, bi := 0, 0
 	al, bl := strings.ToLower(a), strings.ToLower(b)
+	paddingTie := 0
 	for ai < len(al) && bi < len(bl) {
 		ar, br := al[ai], bl[bi]
 		if isASCIIDigit(ar) && isASCIIDigit(br) {
@@ -967,11 +968,12 @@ func naturalLess(a, b string) bool {
 			if anum != bnum {
 				return anum < bnum
 			}
-			// Same numeric value: shorter digit run sorts first, so image1
-			// comes before image001 while remaining deterministic.
+			// Same numeric value: remember the shorter digit run as a stable
+			// tie-breaker, but first keep comparing the remaining suffix so
+			// image001a sorts before image1b.
 			alen, blen := ai-anumStart, bi-bnumStart
-			if alen != blen {
-				return alen < blen
+			if alen != blen && paddingTie == 0 {
+				paddingTie = alen - blen
 			}
 			continue
 		}
@@ -983,6 +985,9 @@ func naturalLess(a, b string) bool {
 	}
 	if len(al) != len(bl) {
 		return len(al) < len(bl)
+	}
+	if paddingTie != 0 {
+		return paddingTie < 0
 	}
 	// If the case-insensitive comparison found the names equivalent, fall back
 	// to the original spelling so case-only distinct filenames still sort in a

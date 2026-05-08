@@ -78,6 +78,19 @@ func TestNaturalLessHandlesZeroPadding(t *testing.T) {
 	}
 }
 
+func TestNaturalLessComparesSuffixBeforeZeroPaddingTieBreak(t *testing.T) {
+	files := []string{"image1b.png", "image001a.png", "image1a.png"}
+
+	sort.Slice(files, func(i, j int) bool { return naturalLess(files[i], files[j]) })
+
+	want := []string{"image1a.png", "image001a.png", "image1b.png"}
+	for i := range want {
+		if files[i] != want[i] {
+			t.Fatalf("sorted files[%d] = %q, want %q; full order: %#v", i, files[i], want[i], files)
+		}
+	}
+}
+
 func TestNaturalLessOrdersDigitsBeforeLetters(t *testing.T) {
 	if !naturalLess("img2.png", "imgA.png") {
 		t.Fatalf("expected digit run to sort before letter at the same position")
