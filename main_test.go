@@ -87,12 +87,15 @@ func TestNaturalLessOrdersDigitsBeforeLetters(t *testing.T) {
 	}
 }
 
-func TestNaturalLessIsCaseInsensitive(t *testing.T) {
+func TestNaturalLessIsCaseInsensitiveWithDeterministicTieBreak(t *testing.T) {
 	if !naturalLess("Frame2.PNG", "frame10.png") {
 		t.Fatalf("expected case-insensitive natural sort")
 	}
-	if naturalLess("Image1.png", "image1.png") || naturalLess("image1.png", "Image1.png") {
-		t.Fatalf("case-only differences should compare equivalent")
+	if !naturalLess("Image1.png", "image1.png") {
+		t.Fatalf("expected original spelling to break case-only ties deterministically")
+	}
+	if naturalLess("image1.png", "Image1.png") {
+		t.Fatalf("did not expect lowercase spelling to sort before uppercase spelling tie-breaker")
 	}
 }
 

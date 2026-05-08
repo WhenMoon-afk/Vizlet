@@ -981,7 +981,13 @@ func naturalLess(a, b string) bool {
 		ai++
 		bi++
 	}
-	return len(al) < len(bl)
+	if len(al) != len(bl) {
+		return len(al) < len(bl)
+	}
+	// If the case-insensitive comparison found the names equivalent, fall back
+	// to the original spelling so case-only distinct filenames still sort in a
+	// deterministic total order on case-sensitive filesystems.
+	return a < b
 }
 
 func isASCIIDigit(c byte) bool {
