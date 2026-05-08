@@ -124,6 +124,9 @@ func TestNaturalLessComparatorInvariants(t *testing.T) {
 		"imagea.png",
 		"img1-frame2.png",
 		"img1-frame10.png",
+		"0aa",
+		"00a",
+		"0a0a",
 	}
 
 	for _, file := range files {
@@ -138,6 +141,15 @@ func TestNaturalLessComparatorInvariants(t *testing.T) {
 			}
 			if naturalLess(a, b) && naturalLess(b, a) {
 				t.Fatalf("naturalLess is not antisymmetric for %q and %q", a, b)
+			}
+		}
+	}
+	for _, a := range files {
+		for _, b := range files {
+			for _, c := range files {
+				if naturalLess(a, b) && naturalLess(b, c) && !naturalLess(a, c) {
+					t.Fatalf("naturalLess is not transitive for %q, %q, and %q", a, b, c)
+				}
 			}
 		}
 	}

@@ -983,11 +983,11 @@ func naturalLess(a, b string) bool {
 		ai++
 		bi++
 	}
-	if len(al) != len(bl) {
-		return len(al) < len(bl)
-	}
 	if paddingTie != 0 {
 		return paddingTie < 0
+	}
+	if len(al) != len(bl) {
+		return len(al) < len(bl)
 	}
 	// If the case-insensitive comparison found the names equivalent, fall back
 	// to the original spelling so case-only distinct filenames still sort in a
