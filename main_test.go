@@ -99,6 +99,37 @@ func TestNaturalLessIsCaseInsensitiveWithDeterministicTieBreak(t *testing.T) {
 	}
 }
 
+func TestNaturalLessComparatorInvariants(t *testing.T) {
+	files := []string{
+		"image1.png",
+		"Image1.png",
+		"image001.png",
+		"image2.png",
+		"image00000000000000000000000000000000000000000010.png",
+		"image10.png",
+		"imageA.png",
+		"imagea.png",
+		"img1-frame2.png",
+		"img1-frame10.png",
+	}
+
+	for _, file := range files {
+		if naturalLess(file, file) {
+			t.Fatalf("naturalLess(%q, %q) = true; comparator must be irreflexive", file, file)
+		}
+	}
+	for _, a := range files {
+		for _, b := range files {
+			if a == b {
+				continue
+			}
+			if naturalLess(a, b) && naturalLess(b, a) {
+				t.Fatalf("naturalLess is not antisymmetric for %q and %q", a, b)
+			}
+		}
+	}
+}
+
 func TestBuildDirListUsesNaturalSortAndFindsCurrentIndex(t *testing.T) {
 	dir := t.TempDir()
 	names := []string{
