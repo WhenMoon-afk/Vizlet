@@ -12,9 +12,9 @@ jobs:
   build:
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4 pinned 2026-07-20
 
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5 pinned 2026-07-20
         with:
           go-version: '1.22'
 
@@ -31,11 +31,13 @@ jobs:
               -X main.BuildDate=${DATE}" \
             -o vizlet.exe .
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4 pinned 2026-07-20
         with:
           name: vizlet-windows-amd64
           path: vizlet.exe
 
-      - uses: softprops/action-gh-release@v2
-        with:
-          files: vizlet.exe
+      - name: Create GitHub release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" vizlet.exe --verify-tag --generate-notes --title "$GITHUB_REF_NAME"
