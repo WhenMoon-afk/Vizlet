@@ -1,0 +1,194 @@
+package main
+
+import (
+	"os"
+	"path/filepath"
+	"sort"
+	"testing"
+)
+
+func TestNaturalLessSortsNumericRunsByValue(t *testing.T) {
+	files := []string{
+		"image10.png",
+		"image2.png",
+		"image1.png",
+		"image001.png",
+		"image20.png",
+		"image3.png",
+	}
+
+	sort.Slice(files, func(i, j int) bool { return naturalLess(files[i], files[j]) })
+
+	want := []string{
+		"image1.png",
+		"image001.png",
+		"image2.png",
+		"image3.png",
+		"image10.png",
+		"image20.png",
+	}
+	if len(files) != len(want) {
+		t.Fatalf("got %d files, want %d", len(files), len(want))
+	}
+	for i := range want {
+		if files[i] != want[i] {
+			t.Fatalf("sorted files[%d] = %q, want %q; full order: %#v", i, files[i], want[i], files)
+		}
+	}
+}
+
+func TestNaturalPathLessUsesBaseName(t *testing.T) {
+	a := filepath.Join("C:\\images", "shot10.png")
+	b := filepath.Join("C:\\images", "shot2.png")
+	if !naturalPathLess(b, a) {
+		t.Fatalf("expected shot2 to sort before shot10")
+	}
+	if naturalPathLess(a, b) {
+		t.Fatalf("did not expect shot10 to sort before shot2")
+	}
+}
+
+func TestNaturalLessHandlesMultipleNumericRuns(t *testing.T) {
+	files := []string{
+		"img1-frame10.png",
+		"img1-frame2.png",
+		"img1-frame1.png",
+	}
+
+	sort.Slice(files, func(i, j int) bool { return naturalLess(files[i], files[j]) })
+
+	want := []string{"img1-frame1.png", "img1-frame2.png", "img1-frame10.png"}
+	for i := range want {
+		if files[i] != want[i] {
+			t.Fatalf("sorted files[%d] = %q, want %q; full order: %#v", i, files[i], want[i], files)
+		}
+	}
+}
+
+func TestNaturalLessHandlesZeroPadding(t *testing.T) {
+	files := []string{"img00.png", "img000.png", "img0.png"}
+
+	sort.Slice(files, func(i, j int) bool { return naturalLess(files[i], files[j]) })
+
+	want := []string{"img0.png", "img00.png", "img000.png"}
+	for i := range want {
+		if files[i] != want[i] {
+			t.Fatalf("sorted files[%d] = %q, want %q; full order: %#v", i, files[i], want[i], files)
+		}
+	}
+}
+
+func TestNaturalLessComparesSuffixBeforeZeroPaddingTieBreak(t *testing.T) {
+	files := []string{"image1b.png", "image001a.png", "image1a.png"}
+
+	sort.Slice(files, func(i, j int) bool { return naturalLess(files[i], files[j]) })
+
+	want := []string{"image1a.png", "image001a.png", "image1b.png"}
+	for i := range want {
+		if files[i] != want[i] {
+			t.Fatalf("sorted files[%d] = %q, want %q; full order: %#v", i, files[i], want[i], files)
+		}
+	}
+}
+
+func TestNaturalLessOrdersDigitsBeforeLetters(t *testing.T) {
+	if !naturalLess("img2.png", "imgA.png") {
+		t.Fatalf("expected digit run to sort before letter at the same position")
+	}
+	if naturalLess("imgA.png", "img2.png") {
+		t.Fatalf("did not expect letter to sort before digit run at the same position")
+	}
+}
+
+func TestNaturalLessIsCaseInsensitiveWithDeterministicTieBreak(t *testing.T) {
+	if !naturalLess("Frame2.PNG", "frame10.png") {
+		t.Fatalf("expected case-insensitive natural sort")
+	}
+	if !naturalLess("Image1.png", "image1.png") {
+		t.Fatalf("expected original spelling to break case-only ties deterministically")
+	}
+	if naturalLess("image1.png", "Image1.png") {
+		t.Fatalf("did not expect lowercase spelling to sort before uppercase spelling tie-breaker")
+	}
+}
+
+func TestNaturalLessComparatorInvariants(t *testing.T) {
+	files := []string{
+		"image1.png",
+		"Image1.png",
+		"image001.png",
+		"image2.png",
+		"image00000000000000000000000000000000000000000010.png",
+		"image10.png",
+		"imageA.png",
+		"imagea.png",
+		"img1-frame2.png",
+		"img1-frame10.png",
+		"0aa",
+		"00a",
+		"0a0a",
+	}
+
+	for _, file := range files {
+		if naturalLess(file, file) {
+			t.Fatalf("naturalLess(%q, %q) = true; comparator must be irreflexive", file, file)
+		}
+	}
+	for _, a := range files {
+		for _, b := range files {
+			if a == b {
+				continue
+			}
+			if naturalLess(a, b) && naturalLess(b, a) {
+				t.Fatalf("naturalLess is not antisymmetric for %q and %q", a, b)
+			}
+		}
+	}
+	for _, a := range files {
+		for _, b := range files {
+			for _, c := range files {
+				if naturalLess(a, b) && naturalLess(b, c) && !naturalLess(a, c) {
+					t.Fatalf("naturalLess is not transitive for %q, %q, and %q", a, b, c)
+				}
+			}
+		}
+	}
+}
+
+func TestBuildDirListUsesNaturalSortAndFindsCurrentIndex(t *testing.T) {
+	dir := t.TempDir()
+	names := []string{
+		"image10.png",
+		"image2.png",
+		"image1.png",
+		"notes.txt",
+	}
+	for _, name := range names {
+		if err := os.WriteFile(filepath.Join(dir, name), nil, 0o644); err != nil {
+			t.Fatalf("write %s: %v", name, err)
+		}
+	}
+	if err := os.Mkdir(filepath.Join(dir, "image3.png"), 0o755); err != nil {
+		t.Fatalf("mkdir image3.png: %v", err)
+	}
+
+	current := filepath.Join(dir, "image2.png")
+	got, index := buildDirList(current)
+
+	want := []string{
+		filepath.Join(dir, "image1.png"),
+		filepath.Join(dir, "image2.png"),
+		filepath.Join(dir, "image10.png"),
+	}
+	if len(got) != len(want) {
+		t.Fatalf("got %d files, want %d: %#v", len(got), len(want), got)
+	}
+	for i := range want {
+		if got[i] != want[i] {
+			t.Fatalf("files[%d] = %q, want %q; full order: %#v", i, got[i], want[i], got)
+		}
+	}
+	if index != 1 {
+		t.Fatalf("index = %d, want 1", index)
+	}
+}

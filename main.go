@@ -927,13 +927,76 @@ func buildDirList(current string) ([]string, int) {
 			files = append(files, filepath.Join(dir, e.Name()))
 		}
 	}
-	sort.Slice(files, func(i, j int) bool { return strings.ToLower(files[i]) < strings.ToLower(files[j]) })
+	sort.Slice(files, func(i, j int) bool { return naturalPathLess(files[i], files[j]) })
 	for i, f := range files {
 		if samePath(f, current) {
 			return files, i
 		}
 	}
 	return files, 0
+}
+
+func naturalPathLess(a, b string) bool {
+	return naturalLess(filepath.Base(a), filepath.Base(b))
+}
+
+func naturalLess(a, b string) bool {
+	ai, bi := 0, 0
+	al, bl := strings.ToLower(a), strings.ToLower(b)
+	paddingTie := 0
+	for ai < len(al) && bi < len(bl) {
+		ar, br := al[ai], bl[bi]
+		if isASCIIDigit(ar) && isASCIIDigit(br) {
+			anumStart, bnumStart := ai, bi
+			for ai < len(al) && isASCIIDigit(al[ai]) {
+				ai++
+			}
+			for bi < len(bl) && isASCIIDigit(bl[bi]) {
+				bi++
+			}
+			anum := strings.TrimLeft(al[anumStart:ai], "0")
+			bnum := strings.TrimLeft(bl[bnumStart:bi], "0")
+			if anum == "" {
+				anum = "0"
+			}
+			if bnum == "" {
+				bnum = "0"
+			}
+			if len(anum) != len(bnum) {
+				return len(anum) < len(bnum)
+			}
+			if anum != bnum {
+				return anum < bnum
+			}
+			// Same numeric value: remember the shorter digit run as a stable
+			// tie-breaker, but first keep comparing the remaining suffix so
+			// image001a sorts before image1b.
+			alen, blen := ai-anumStart, bi-bnumStart
+			if alen != blen && paddingTie == 0 {
+				paddingTie = alen - blen
+			}
+			continue
+		}
+		if ar != br {
+			return ar < br
+		}
+		ai++
+		bi++
+	}
+	if paddingTie != 0 {
+		return paddingTie < 0
+	}
+	if len(al) != len(bl) {
+		return len(al) < len(bl)
+	}
+	// If the case-insensitive comparison found the names equivalent, fall back
+	// to the original spelling so case-only distinct filenames still sort in a
+	// deterministic total order on case-sensitive filesystems.
+	return a < b
+}
+
+func isASCIIDigit(c byte) bool {
+	return c >= '0' && c <= '9'
 }
 
 func (a *App) navigate(delta int) {
